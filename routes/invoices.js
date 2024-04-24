@@ -65,7 +65,11 @@ router.post("/", async function (req, res, next) {
            VALUES ($1, $2) 
            RETURNING id, comp_code, amt, paid, add_date, paid_date`,
             [comp_code, amt]);
-        return res.json({ "invoice": result.rows[0] });
+        if (result.rows.length > 0) {
+            return res.status(201).json({ "invoice": result.rows[0] });
+        } else {
+            return res.status(500).json({ error: "Unable to create a new invoice." });
+        }
     }
     catch (err) {
         return next(err);
