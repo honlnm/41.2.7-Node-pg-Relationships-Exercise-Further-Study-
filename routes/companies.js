@@ -15,7 +15,13 @@ router.get('/', async (req, res, next) => {
 
 router.get('/:code', async (req, res, next) => {
     try {
-        const companyQuery = await db.query(`SELECT * FROM companies WHERE code = $1`, [req.params.code]);
+        const companyQuery = await db.query(`SELECT c.code, c.name, c.description, i.industry 
+            FROM companies AS c 
+            LEFT JOIN company_industries AS ci
+            ON c.code = ci.comp_code
+            LEFT JOIN industries AS i
+            ON ci.ind_code = i.code
+            WHERE c.code = $1`, [req.params.code]);
         if (companyQuery.rows.length === 0) {
             let notFoundError = new Error(`There is no company with code '${req.params.code}`);
             notFoundError.status = 404;
@@ -27,7 +33,7 @@ router.get('/:code', async (req, res, next) => {
     }
 })
 
-router.post("/", async function (req, res, next) {
+router.post('/', async function (req, res, next) {
     try {
         let { name, description } = req.body;
         let code = slugify(name, { lower: true });
@@ -45,6 +51,22 @@ router.post("/", async function (req, res, next) {
         return next(err);
     }
 });
+
+
+router.post('/:code', async function (req, res, next) {
+    try {
+        let { ind_code } = req.body;
+        let comp_code = req.params.code;
+        const result = await db.query(
+            `INSERT INTO company_industries (comp_code, ind_code)
+            VALUES ($1, $2)
+            RETURNING comp_code, ind_code`,
+            [comp_code, ind_code]);
+        return res.status(201).json({ "company_industry": result.rows[0] });
+    } catch (err) {
+        return next(err);
+    }
+})
 
 router.put('/:code', async (req, res, next) => {
     try {
