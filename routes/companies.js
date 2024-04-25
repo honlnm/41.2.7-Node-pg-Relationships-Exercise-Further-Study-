@@ -1,4 +1,5 @@
 const express = require("express");
+const slugify = require("slugify");
 const ExpressError = require("../expressError");
 const router = express.Router();
 const db = require("../db");
@@ -26,21 +27,24 @@ router.get('/:code', async (req, res, next) => {
     }
 })
 
-router.post('/', async (req, res, next) => {
+router.post("/", async function (req, res, next) {
     try {
+        let { name, description } = req.body;
+        let code = slugify(name, { lower: true });
+
         const result = await db.query(
-            `INSERT INTO companies (code, name, description) VALUES ($1, $2, $3) RETURNING code, name, description`,
-            [req.body.code, req.body.name, req.body.description]
-        );
-        if (result.rows.length > 0) {
-            return res.status(201).json({ company: result.rows[0] });
-        } else {
-            return res.status(500).json({ error: "Unable to create a new company." });
-        }
-    } catch (e) {
-        return next(e);
+            `INSERT INTO companies (code, name, description) 
+             VALUES ($1, $2, $3) 
+             RETURNING code, name, description`,
+            [code, name, description]);
+
+        return res.status(201).json({ "company": result.rows[0] });
     }
-})
+
+    catch (err) {
+        return next(err);
+    }
+});
 
 router.put('/:code', async (req, res, next) => {
     try {

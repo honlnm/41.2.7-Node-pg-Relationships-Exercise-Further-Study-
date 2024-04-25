@@ -55,11 +55,16 @@ describe("GET /invoices/:id", () => {
 
 describe("POST /invoices", () => {
     test("Creates a single invoice", async () => {
-        const res = await request(app).post('/invoices').send({ comp_Code: `emerson`, amt: 50 });
+        const res = await request(app).post('/invoices').send({ comp_code: `emerson`, amt: 50 });
         expect(res.statusCode).toBe(201);
-        expect(res.body).toEqual({
-            invoice: { id: testInvoice.id, comp_Code: `emerson`, amt: 50, paid: false, add_date: testInvoice.add_date, paid_date: null }
-        })
+        expect(res.body.invoice.id).toBeDefined();
+        expect(typeof res.body.invoice.id).toBe(`number`);
+        expect(res.body.invoice.comp_code).toBe(`emerson`);
+        expect(res.body.invoice.amt).toBe(50);
+        expect(res.body.invoice.paid).toBe(false);
+        expect(res.body.invoice.add_date).toBeDefined();
+        expect(typeof res.body.invoice.add_date).toBe(`string`);
+        expect(res.body.invoice.paid_date).toBe(null);
     })
 })
 
@@ -67,9 +72,14 @@ describe("PUT /invoices/:id", () => {
     test("Updates a single invoice", async () => {
         const res = await request(app).put(`/invoices/${testInvoice.id}`).send({ amt: 400, paid: true })
         expect(res.statusCode).toBe(200);
+        const paidDate = res.body.invoice.paid_date;
+        delete res.body.invoice.paid_date;
         expect(res.body).toEqual({
-            invoice: { id: testInvoice.id, comp_code: "emerson", amt: 400, paid: true, add_date: testInvoice.add_date.toISOString(), paid_date: testInvoice.paid_date.toISOString() }
+            invoice: { id: testInvoice.id, comp_code: "emerson", amt: 400, paid: true, add_date: testInvoice.add_date.toISOString() }
         })
+        expect(paidDate.length).toEqual(res.body.invoice.add_date.length);
+        expect(typeof paidDate).toBe(`string`);
+        expect(new Date(paidDate) > new Date(res.body.invoice.add_date)).toBe(true);
     })
     test("Rsponds with 404 for invalid id", async () => {
         const res = await request(app).patch(`/invoices/0`).send({ amt: 500, paid: true })
